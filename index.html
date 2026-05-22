@@ -281,23 +281,40 @@ const CATS={
 let S={txs:[],budgets:[],goals:[],key:'',txType:'expense',nextId:Date.now(),chatOk:false};
 
 // ── GAS API URL — CHỈ CẦN THAY 1 DÒNG NÀY ───────────────────
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyWXBCKBTm_7IZ2URBAy_lfJiFGAtOxXIS6O91FDYhXkSKKzJ0Yd1nr6HVmoCLhkqi8/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxRZg3Y4l3xTIG5rzpiE7c2OaG1WGIV5pscglHt9hy4l5LcBR9IKNvw7mRv_PyV4TcS/exec';
 
-// ── GAS HELPER (gọi qua fetch) ────────────────────────────────
-async function gs(fn, ...args) {
-  // loadAllData → GET request
-  if (fn === 'loadAllData') {
-    const r = await fetch(`${GAS_URL}?action=load`);
-    return r.json();
-  }
-  // Các hàm khác → POST request
-  // Dùng text/plain để tránh CORS preflight
-  const r = await fetch(GAS_URL, {
+// ── GAS HELPER ────────────────────────────────────────────────
+// Đọc data: dùng JSONP (bypass CORS hoàn toàn)
+// Ghi data: dùng fetch no-cors (fire & forget, optimistic update)
+
+function gs(fn, ...args) {
+  if (fn === 'loadAllData') return _jsonp(`${GAS_URL}?action=load`);
+  // Ghi: no-cors, không đọc được response nhưng GAS vẫn xử lý
+  return fetch(GAS_URL, {
     method: 'POST',
+    mode: 'no-cors',
     headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({ action: fn, payload: args[0] })
+  }).then(() => ({ success: true }));
+}
+
+function _jsonp(url) {
+  return new Promise((resolve, reject) => {
+    const cb = '_gas_' + Date.now();
+    const script = document.createElement('script');
+    const timer = setTimeout(() => {
+      cleanup(); reject(new Error('Timeout kết nối GAS'));
+    }, 15000);
+    function cleanup() {
+      delete window[cb];
+      if (script.parentNode) script.parentNode.removeChild(script);
+      clearTimeout(timer);
+    }
+    window[cb] = (data) => { cleanup(); resolve(data); };
+    script.onerror = () => { cleanup(); reject(new Error('Không kết nối được GAS')); };
+    script.src = `${url}&callback=${cb}`;
+    document.head.appendChild(script);
   });
-  return r.json();
 }
 
 // ── INIT ──────────────────────────────────────────────────────
