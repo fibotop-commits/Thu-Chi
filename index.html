@@ -280,12 +280,24 @@ const CATS={
 // ── STATE ─────────────────────────────────────────────────────
 let S={txs:[],budgets:[],goals:[],key:'',txType:'expense',nextId:Date.now(),chatOk:false};
 
-// ── GAS HELPER ────────────────────────────────────────────────
-function gs(fn,...args){
-  return new Promise((ok,err)=>{
-    let runner=google.script.run.withSuccessHandler(ok).withFailureHandler(e=>err(e));
-    runner[fn](...args);
+// ── GAS API URL — CHỈ CẦN THAY 1 DÒNG NÀY ───────────────────
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxRZg3Y4l3xTIG5rzpiE7c2OaG1WGIV5pscglHt9hy4l5LcBR9IKNvw7mRv_PyV4TcS/exec';
+
+// ── GAS HELPER (gọi qua fetch) ────────────────────────────────
+async function gs(fn, ...args) {
+  // loadAllData → GET request
+  if (fn === 'loadAllData') {
+    const r = await fetch(`${GAS_URL}?action=load`);
+    return r.json();
+  }
+  // Các hàm khác → POST request
+  // Dùng text/plain để tránh CORS preflight
+  const r = await fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: fn, payload: args[0] })
   });
+  return r.json();
 }
 
 // ── INIT ──────────────────────────────────────────────────────
