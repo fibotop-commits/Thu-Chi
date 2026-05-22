@@ -2,12 +2,15 @@
 <html lang="vi" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FinFlow Pro">
 <title>FinFlow Pro</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/dist/tabler-icons.min.css">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 button,input,select,textarea{font-family:inherit;font-size:inherit}
 :root{
   --bg:#0b0d14;--bg2:#111420;--surf:#161924;--surf2:#1c2030;
@@ -139,7 +142,50 @@ body{background:var(--bg);color:var(--t1);font-family:system-ui,-apple-system,sa
 .toast{position:fixed;bottom:20px;right:20px;padding:11px 18px;background:var(--surf2);border:0.5px solid var(--bd2);border-radius:10px;font-size:13px;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.3);animation:slin .3s,slout .3s 2.5s forwards;pointer-events:none}
 @keyframes slin{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
 @keyframes slout{to{opacity:0;transform:translateY(8px)}}
-@media(max-width:700px){.sgrid{grid-template-columns:repeat(2,1fr)}.cgrid{grid-template-columns:1fr}.gcards{grid-template-columns:1fr}}
+@media(max-width:700px){
+  /* Giữ nguyên cấu trúc lưới cũ của bạn */
+  .sgrid{grid-template-columns:repeat(2,1fr)}
+  .cgrid{grid-template-columns:1fr}
+  .gcards{grid-template-columns:1fr}
+
+  /* Đảo ngược bố cục: Đẩy sidebar xuống dưới cùng làm Bottom Nav */
+  #app { flex-direction: column-reverse; }
+
+  #sb { 
+    width: 100%; height: auto; min-width: 0; 
+    flex-direction: row; justify-content: space-around;
+    border-right: none; border-top: 0.5px solid var(--bd); 
+    padding: 0 0 env(safe-area-inset-bottom) 0; /* Né thanh Home Indicator của iPhone */
+    z-index: 100; background: var(--surf);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* Ẩn logo và chữ danh mục trên mobile để đỡ chật chội */
+  .slogo, .ni .sbl { display: none; }
+
+  .ni { 
+    flex: 1; justify-content: center; padding: 12px 0;
+    border-left: none; border-top: 2.5px solid transparent; 
+  }
+
+  /* Đổi highlight từ viền trái thành viền trên cho Bottom Nav */
+  .ni.on { border-left-color: transparent; border-top-color: var(--acc); background: transparent; }
+  .ni i { font-size: 22px; }
+
+  /* Thêm padding dưới để nội dung view không bị đè bởi thanh Bottom Nav */
+  .view { padding: 20px 20px calc(75px + env(safe-area-inset-bottom)); }
+
+  /* Hiệu ứng Bottom Sheet trượt từ đáy lên cho Modal nhập liệu */
+  #mov { align-items: flex-end; }
+  #mbox { 
+    width: 100%; max-width: 100%;
+    border-radius: 20px 20px 0 0; border: none;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom)); /* Né nút đáy iPhone */
+    animation: slideUp 0.3s cubic-bezier(0.32, 0.94, 0.6, 1);
+    max-height: 85vh;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--t3);border-radius:4px}
 </style>
 </head>
@@ -589,7 +635,7 @@ function openM(type){
         <div class="ttog"><button class="ttbtn i" id="btnI" onclick="setTT('income')">💚 Thu nhập</button><button class="ttbtn on e" id="btnE" onclick="setTT('expense')">🔴 Chi tiêu</button></div>
       </div>
       <div class="frow"><label>Tên giao dịch</label><input id="fName" placeholder="VD: Lương tháng 5"/></div>
-      <div class="frow"><label>Số tiền (VNĐ)</label><input id="fAmt" type="number" placeholder="0"/></div>
+      <div class="frow"><label>Số tiền (VNĐ)</label><input id="fAmt" inputmode="decimal" pattern="[0-9]*" placeholder="0"/></div>
       <div class="frow"><label>Danh mục</label><select id="fCatM">${catOpts}</select></div>
       <div class="frow"><label>Ngày</label><input id="fDate" type="date" value="${new Date().toISOString().split('T')[0]}"/></div>
       <div class="frow"><label>Ghi chú (tuỳ chọn)</label><input id="fNote" placeholder="Ghi chú..."/></div>
