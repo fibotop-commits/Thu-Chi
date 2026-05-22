@@ -143,10 +143,37 @@ body{background:var(--bg);color:var(--t1);font-family:system-ui,-apple-system,sa
 @keyframes slin{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
 @keyframes slout{to{opacity:0;transform:translateY(8px)}}
 @media(max-width:700px){
-  /* Giữ nguyên cấu trúc lưới cũ của bạn */
   .sgrid{grid-template-columns:repeat(2,1fr)}
   .cgrid{grid-template-columns:1fr}
   .gcards{grid-template-columns:1fr}
+
+  /* Đẩy Navigation ghim chặt xuống đáy */
+  #sb { 
+    position: fixed; bottom: 0; left: 0; width: 100vw; height: auto;
+    flex-direction: row; justify-content: space-around;
+    border-right: none; border-top: 0.5px solid var(--bd); 
+    padding: 0 0 env(safe-area-inset-bottom) 0;
+    z-index: 999; background: var(--surf);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  }
+  
+  .slogo, .ni .sbl { display: none; }
+  .ni { flex: 1; justify-content: center; padding: 12px 0; border-left: none; border-top: 2.5px solid transparent; }
+  .ni.on { border-left-color: transparent; border-top-color: var(--acc); background: transparent; }
+  .ni i { font-size: 24px; }
+  
+  /* Bù khoảng trống tai thỏ và thanh bottom nav */
+  .view { padding: calc(14px + env(safe-area-inset-top)) 20px calc(80px + env(safe-area-inset-bottom)) 20px; }
+
+  #mov { align-items: flex-end; }
+  #mbox { 
+    width: 100vw; max-width: 100%; max-height: 85vh;
+    border-radius: 20px 20px 0 0; border: none;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    animation: slideUp 0.3s cubic-bezier(0.32, 0.94, 0.6, 1);
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+}
 
   /* Đảo ngược bố cục: Đẩy sidebar xuống dưới cùng làm Bottom Nav */
   #app { flex-direction: column-reverse; }
@@ -364,29 +391,35 @@ function _jsonp(url) {
 }
 
 // ── INIT ──────────────────────────────────────────────────────
+function saveCache() {
+  localStorage.setItem('ff_data', JSON.stringify({txs: S.txs, budgets: S.budgets, goals: S.goals, key: S.key}));
+}
+
 document.addEventListener('DOMContentLoaded',()=>{
   const th=sessionStorage.getItem('ff_theme')||'dark';
   document.documentElement.setAttribute('data-theme',th);
   updateThemeIcon();
+  document.getElementById('dateLabel').textContent=new Date().toLocaleDateString('vi-VN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
-  document.getElementById('dateLabel').textContent=
-    new Date().toLocaleDateString('vi-VN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-
-  // Load all data from Google Sheet
-  gs('loadAllData').then(data=>{
-    S.txs     = data.transactions||[];
-    S.budgets = data.budgets||[];
-    S.goals   = data.goals||[];
-    S.key     = data.geminiKey||'';
-    // Hide loading, show app
+  const cached = localStorage.getItem('ff_data');
+  if(cached) {
+    const d = JSON.parse(cached);
+    S.txs = d.txs||[]; S.budgets = d.budgets||[]; S.goals = d.goals||[]; S.key = d.key||'';
     document.getElementById('loadScreen').style.display='none';
     document.getElementById('app').style.display='flex';
-    renderAll();
-    initCharts();
-    initAI();
-    updateFilters();
+    renderAll(); initCharts(); initAI(); updateFilters();
+  }
+
+  gs('loadAllData').then(data=>{
+    S.txs = data.transactions||[]; S.budgets = data.budgets||[]; S.goals = data.goals||[]; S.key = data.geminiKey||'';
+    saveCache(); 
+    if(!cached) { 
+      document.getElementById('loadScreen').style.display='none';
+      document.getElementById('app').style.display='flex';
+    }
+    renderAll(); initCharts(); initAI(); updateFilters();
   }).catch(e=>{
-    document.getElementById('loadMsg').textContent='❌ Lỗi: '+e.message;
+    if(!cached) document.getElementById('loadMsg').textContent='❌ Lỗi: '+e.message;
   });
 });
 
@@ -605,8 +638,8 @@ Trả lời tiếng Việt, ngắn gọn. Câu hỏi: ${msg}`;
 
 // ── CRUD ──────────────────────────────────────────────────────
 function delTx(id){
-  // Optimistic update
   S.txs=S.txs.filter(t=>String(t.id)!==String(id));
+  saveCache(); // <-- LƯU VÀO CACHE Ở ĐÂY
   renderStats();renderRecent();renderTx();renderBudget();initCharts();updateFilters();
   toast('🗑 Đang xoá...');
   gs('deleteTransaction',id).then(()=>toast('✅ Đã xoá khỏi Sheet')).catch(e=>toast('❌ Lỗi xoá: '+e.message));
@@ -689,13 +722,14 @@ function saveAdd(){
   const note=document.getElementById('fNote').value;
   if(!name||!amt||!date){toast('⚠️ Vui lòng điền đầy đủ!');return;}
   const tx={id:String(Date.now()),type:S.txType,name,amount:amt,cat,date,note};
-  // Optimistic update
   S.txs.push(tx);
+  saveCache(); // <-- LƯU VÀO CACHE Ở ĐÂY
   closeM();renderAll();initCharts();updateFilters();
   toast('💾 Đang lưu lên Sheet...');
   gs('addTransaction',tx).then(()=>toast('✅ Đã lưu vào Google Sheet!')).catch(e=>{
     toast('❌ Lỗi lưu Sheet: '+e.message);
-    S.txs=S.txs.filter(t=>t.id!==tx.id); // rollback
+    S.txs=S.txs.filter(t=>t.id!==tx.id);
+    saveCache(); // Rollback cũng phải lưu lại cache
     renderAll();
   });
 }
@@ -706,6 +740,7 @@ function saveBudget(){
   if(!lim){toast('⚠️ Nhập hạn mức hợp lệ!');return;}
   const i=S.budgets.findIndex(b=>b.cat===cat);
   if(i>=0)S.budgets[i].limit=lim;else S.budgets.push({cat,limit:lim});
+  saveCache(); // <-- LƯU VÀO CACHE Ở ĐÂY
   closeM();renderBudget();
   gs('saveBudget',{cat,limit:lim}).then(()=>toast('✅ Đã lưu ngân sách!')).catch(e=>toast('❌ Lỗi: '+e.message));
 }
@@ -719,6 +754,7 @@ function saveGoal(){
   if(!name||!tgt||!dl){toast('⚠️ Điền đầy đủ thông tin!');return;}
   const goal={id:String(Date.now()),name,target:tgt,current:cur,deadline:dl,emoji:emj};
   S.goals.push(goal);
+  saveCache(); // <-- LƯU VÀO CACHE Ở ĐÂY
   closeM();renderGoals();
   gs('saveGoal',goal).then(()=>toast('🎯 Đã lưu mục tiêu!')).catch(e=>toast('❌ Lỗi: '+e.message));
 }
