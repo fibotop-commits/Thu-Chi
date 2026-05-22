@@ -147,10 +147,10 @@ body{background:var(--bg);color:var(--t1);font-family:system-ui,-apple-system,sa
   .cgrid{grid-template-columns:1fr}
   .gcards{grid-template-columns:1fr}
 
-  /* Đẩy Navigation ghim chặt xuống đáy */
+  /* ÉP THANH NAV XUỐNG ĐÁY VÀ TRẢI ĐỀU */
   #sb { 
-    position: fixed; bottom: 0; left: 0; width: 100vw; height: auto;
-    flex-direction: row; justify-content: space-around;
+    position: fixed; bottom: 0; left: 0; width: 100%; height: auto;
+    flex-direction: row; justify-content: space-between; align-items: center;
     border-right: none; border-top: 0.5px solid var(--bd); 
     padding: 0 0 env(safe-area-inset-bottom) 0;
     z-index: 999; background: var(--surf);
@@ -158,58 +158,23 @@ body{background:var(--bg);color:var(--t1);font-family:system-ui,-apple-system,sa
   }
   
   .slogo, .ni .sbl { display: none; }
-  .ni { flex: 1; justify-content: center; padding: 12px 0; border-left: none; border-top: 2.5px solid transparent; }
+  .ni { flex: 1; display: flex; justify-content: center; padding: 14px 0; border-left: none; border-top: 2.5px solid transparent; }
   .ni.on { border-left-color: transparent; border-top-color: var(--acc); background: transparent; }
   .ni i { font-size: 24px; }
   
-  /* Bù khoảng trống tai thỏ và thanh bottom nav */
-  .view { padding: calc(14px + env(safe-area-inset-top)) 20px calc(80px + env(safe-area-inset-bottom)) 20px; }
+  /* FIX LỖI CO RÚM: Khống chế thẻ div bọc nút Cài đặt để nó nằm cùng hàng */
+  aside#sb > div:last-child { margin: 0 !important; flex: 1; display: flex; }
+  aside#sb > div:last-child .ni { width: 100%; }
+  
+  /* FIX LỖI ĐÈ CHỮ TRÊN CÙNG: Ép khoảng cách an toàn tối thiểu 56px */
+  .view { padding: max(56px, env(safe-area-inset-top)) 20px calc(80px + env(safe-area-inset-bottom)) 20px; }
 
   #mov { align-items: flex-end; }
   #mbox { 
-    width: 100vw; max-width: 100%; max-height: 85vh;
+    width: 100%; max-width: 100%; max-height: 85vh;
     border-radius: 20px 20px 0 0; border: none;
     padding-bottom: calc(24px + env(safe-area-inset-bottom));
     animation: slideUp 0.3s cubic-bezier(0.32, 0.94, 0.6, 1);
-  }
-  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-}
-
-  /* Đảo ngược bố cục: Đẩy sidebar xuống dưới cùng làm Bottom Nav */
-  #app { flex-direction: column-reverse; }
-
-  #sb { 
-    width: 100%; height: auto; min-width: 0; 
-    flex-direction: row; justify-content: space-around;
-    border-right: none; border-top: 0.5px solid var(--bd); 
-    padding: 0 0 env(safe-area-inset-bottom) 0; /* Né thanh Home Indicator của iPhone */
-    z-index: 100; background: var(--surf);
-    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  }
-
-  /* Ẩn logo và chữ danh mục trên mobile để đỡ chật chội */
-  .slogo, .ni .sbl { display: none; }
-
-  .ni { 
-    flex: 1; justify-content: center; padding: 12px 0;
-    border-left: none; border-top: 2.5px solid transparent; 
-  }
-
-  /* Đổi highlight từ viền trái thành viền trên cho Bottom Nav */
-  .ni.on { border-left-color: transparent; border-top-color: var(--acc); background: transparent; }
-  .ni i { font-size: 22px; }
-
-  /* Thêm padding dưới để nội dung view không bị đè bởi thanh Bottom Nav */
-  .view { padding: 20px 20px calc(75px + env(safe-area-inset-bottom)); }
-
-  /* Hiệu ứng Bottom Sheet trượt từ đáy lên cho Modal nhập liệu */
-  #mov { align-items: flex-end; }
-  #mbox { 
-    width: 100%; max-width: 100%;
-    border-radius: 20px 20px 0 0; border: none;
-    padding-bottom: calc(24px + env(safe-area-inset-bottom)); /* Né nút đáy iPhone */
-    animation: slideUp 0.3s cubic-bezier(0.32, 0.94, 0.6, 1);
-    max-height: 85vh;
   }
   @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 }
