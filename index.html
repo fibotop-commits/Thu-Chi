@@ -122,7 +122,7 @@ body{background:var(--bg);color:var(--t1);font-family:system-ui,-apple-system,sa
 @keyframes blink{0%,60%,100%{opacity:.25}30%{opacity:1}}
 
 /* MODAL */
-#mov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center}
+#mov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:1000;align-items:center;justify-content:center}
 #mov.on{display:flex}
 #mbox{background:var(--surf);border:0.5px solid var(--bd2);border-radius:16px;padding:28px;width:460px;max-width:92vw;max-height:88vh;overflow-y:auto;animation:mani .25s cubic-bezier(.34,1.56,.64,1)}
 @keyframes mani{from{opacity:0;transform:scale(.93) translateY(14px)}to{opacity:1;transform:none}}
@@ -177,6 +177,10 @@ body{background:var(--bg);color:var(--t1);font-family:system-ui,-apple-system,sa
     animation: slideUp 0.3s cubic-bezier(0.32, 0.94, 0.6, 1);
   }
   @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  
+  /* FIX LỖI KHUNG CHAT AI BỊ ĐÈ */
+  #v-ai.on { display: flex !important; flex-direction: column; height: 100dvh; }
+  #v-ai .card { flex: 1; height: auto !important; min-height: 0; }
 }
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--t3);border-radius:4px}
 </style>
