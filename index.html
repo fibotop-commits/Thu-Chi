@@ -643,7 +643,7 @@ function boot(){
 
 async function init(){
   const theme=await cfgGet("dd_theme");
-  if(theme==="light"){document.body.classList.add("light");document.getElementById("themeBtn").textContent="☀️";}
+  if(theme==="dark"){document.body.classList.add("light");document.getElementById("themeBtn").textContent="☀️";}
   // ưu tiên URL nhúng sẵn trong code; nếu trống thì dùng URL đã lưu trên máy
   const savedUrl=GAS_URL_BUILTIN || await cfgGet("dd_gas_url");
   if(savedUrl){
