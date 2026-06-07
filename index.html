@@ -248,10 +248,14 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
       </div>
       <div class="card">
         <div class="seg" id="rangeSeg" style="display:flex;align-items:center;flex-wrap:wrap">
-          <button data-r="day" class="on" style="flex:auto">Ngày</button>
-          <input type="date" id="customDateIn" style="width:40px;height:30px;padding:0;border:none;background:transparent;color:transparent;cursor:pointer;flex:none;position:relative;margin:0 -8px 0 -4px;outline:none;" onchange="setCustomDate(this.value)">
+          <button data-r="day" class="on" id="btnDayFilter" style="flex:1">Ngày</button>
+          <div style="position:relative;display:flex;align-items:center;justify-content:center;background:var(--card);border:1px solid var(--stroke);border-radius:9px;margin:2px;overflow:hidden;">
+            <input type="date" id="customDateIn" style="border:none;background:transparent;color:var(--txt2);font-size:12px;font-weight:600;padding:4px 8px;outline:none;cursor:pointer;font-family:inherit;width:auto;" onchange="setCustomDate(this.value)">
+          </div>
           <button data-r="week">Tuần</button>
-          <button data-r="month">Tháng</button><button data-r="year">Năm</button><button data-r="all">Tất cả</button>
+          <button data-r="month">Tháng</button>
+          <button data-r="year">Năm</button>
+          <button data-r="all">Tất cả</button>
         </div>
       </div>
       <div class="sectitle">Giao dịch <span class="small" id="txCount"></span></div>
@@ -478,9 +482,15 @@ function renderHome(){
   document.getElementById("balVal").textContent=fmt(bal);
   document.getElementById("balVal").style.color=bal<0?"var(--red)":"var(--txt)";
   let rn={day:"hôm nay",week:"tuần này",month:"tháng này",year:"năm nay",all:"tất cả"}[state.range];
-  if(state.range==="day" && state.customDate && state.customDate!==today()){
-     rn = "ngày " + fmtDate(state.customDate);
+  
+  const btnDay = document.getElementById("btnDayFilter");
+  if(state.customDate && state.customDate!==today()){
+     if(state.range==="day") rn = "ngày " + fmtDate(state.customDate);
+     btnDay.textContent = fmtDate(state.customDate);
+  } else {
+     btnDay.textContent = "Ngày";
   }
+
   document.getElementById("balSub").textContent="Tổng số dư • lọc "+rn;
   document.getElementById("incVal").textContent=fmt(inc);
   document.getElementById("expVal").textContent=fmt(exp);
@@ -848,6 +858,7 @@ function changeGas(){closeSheet();GAS_URL="";cfgSet("dd_gas_url","");document.ge
 
 function boot(){
   document.getElementById("todayLbl").textContent=new Date().toLocaleDateString("vi-VN",{weekday:"long",day:"numeric",month:"long"});
+  document.getElementById("customDateIn").value = today();
   render();
 }
 async function init(){
