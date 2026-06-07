@@ -249,8 +249,8 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
       <div class="card">
         <div class="seg" id="rangeSeg" style="display:flex;align-items:center;flex-wrap:wrap">
           <button data-r="day" class="on" id="btnDayFilter" style="flex:1">Ngày</button>
-          <div style="position:relative;display:flex;align-items:center;justify-content:center;background:var(--card);border:1px solid var(--stroke);border-radius:9px;margin:2px;overflow:hidden;">
-            <input type="date" id="customDateIn" style="border:none;background:transparent;color:var(--txt2);font-size:12px;font-weight:600;padding:4px 8px;outline:none;cursor:pointer;font-family:inherit;width:auto;" onchange="setCustomDate(this.value)">
+          <div style="position:relative;display:flex;align-items:center;justify-content:center;background:var(--card);border:1px solid var(--stroke);border-radius:9px;margin:2px;overflow:hidden;padding:0 6px;">
+            <input type="date" id="customDateIn" style="-webkit-appearance:none;appearance:none;border:none;background:transparent;color:var(--txt);font-size:12px;font-weight:600;padding:6px 0;outline:none;cursor:pointer;font-family:inherit;min-width:110px;text-align:center;" onchange="setCustomDate(this.value)">
           </div>
           <button data-r="week">Tuần</button>
           <button data-r="month">Tháng</button>
