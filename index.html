@@ -247,8 +247,10 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
         </div>
       </div>
       <div class="card">
-        <div class="seg" id="rangeSeg">
-          <button data-r="day" class="on">Ngày</button><button data-r="week">Tuần</button>
+        <div class="seg" id="rangeSeg" style="display:flex;align-items:center;flex-wrap:wrap">
+          <button data-r="day" class="on" style="flex:auto">Ngày</button>
+          <input type="date" id="customDateIn" style="width:40px;height:30px;padding:0;border:none;background:transparent;color:transparent;cursor:pointer;flex:none;position:relative;margin:0 -8px 0 -4px;outline:none;" onchange="setCustomDate(this.value)">
+          <button data-r="week">Tuần</button>
           <button data-r="month">Tháng</button><button data-r="year">Năm</button><button data-r="all">Tất cả</button>
         </div>
       </div>
@@ -311,6 +313,15 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 <!-- SHEETS -->
 <div class="ov" id="ov-add"><div class="sheet">
   <div class="grab"></div><h2 id="addTitle">Giao dịch mới</h2>
+  
+  <div style="background:var(--card);border:1px solid var(--blue);border-radius:14px;padding:12px;margin-bottom:16px;">
+    <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:6px;display:flex;align-items:center;gap:4px;"><span class="ic">✨</span> AI Nhập Nhanh</div>
+    <div style="display:flex;gap:8px;">
+      <input id="aiQuickIn" placeholder="VD: ăn trưa 50k, lương 10tr..." style="border:1px solid var(--stroke2);background:var(--bg2);">
+      <button class="btn pri" style="margin-top:0;flex:0 0 44px;padding:0;display:flex;align-items:center;justify-content:center;" onclick="aiFillTx()" id="aiFillBtn">➤</button>
+    </div>
+  </div>
+
   <div class="seg" id="typeSeg"><button data-t="expense" class="on">Chi tiêu</button><button data-t="income">Thu nhập</button></div>
   <input class="amtin" id="amtIn" inputmode="numeric" placeholder="0đ" oninput="fmtAmt(this)">
   <label class="fl">Danh mục</label><div class="catgrid" id="catGrid"></div>
@@ -371,7 +382,31 @@ select{appearance:none;-webkit-appearance:none;background-image:url("data:image/
 
 <div class="toast" id="toast"></div>
 
+<div id="updateToast" style="position:fixed;top:calc(var(--safe-t) + 10px);left:50%;transform:translateX(-50%) translateY(-100px);background:var(--blue);color:#fff;padding:10px 16px;border-radius:24px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:.4s cubic-bezier(.32,.72,0,1);pointer-events:none;box-shadow:0 10px 30px rgba(10,132,255,.4);display:flex;align-items:center;gap:10px;max-width:90%;">
+  <span>✨ Có phiên bản mới!</span>
+  <button onclick="window.location.reload(true)" style="background:#fff;color:var(--blue);border:none;padding:5px 12px;border-radius:14px;font-size:12px;font-weight:700;cursor:pointer;pointer-events:auto;">Cập nhật</button>
+</div>
+
 <script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            // Hiển thị toast thông báo có cập nhật
+            const ut = document.getElementById('updateToast');
+            ut.style.opacity = '1';
+            ut.style.transform = 'translateX(-50%) translateY(0)';
+            ut.style.pointerEvents = 'auto';
+          }
+        });
+      });
+    }).catch(err => console.log('SW Reg Fail:', err));
+  });
+}
+
 /* ====== DÁN WEB APP URL CỦA BẠN VÀO ĐÂY (giữa 2 dấu nháy) ======
    Sau khi điền, app sẽ tự kết nối khi mở, không hỏi nữa. */
 const GAS_URL_BUILTIN="https://script.google.com/macros/s/AKfycbxX2TnGYpOSGZMurKLWuCaQilqlZhdhBXl5Yj-yDImUf37drUUAw7Du05kc6CfDvhIBMA/exec";   // ví dụ: "https://script.google.com/macros/s/AKfyc.../exec"
@@ -395,9 +430,11 @@ const CATS={
 const catMap={};[...CATS.expense,...CATS.income].forEach(c=>catMap[c.id]=c);
 
 let GAS_URL="";
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+
 let DB={tx:[],wallets:["Tiền mặt","Ngân hàng","Ví điện tử"],budgets:{},goals:[],hasKey:false};
 let chat=[];
-let state={tab:"home",range:"day",statRange:"week",addType:"expense",selCat:"food",editId:null,editGoal:null,openSwipe:null};
+let state={tab:"home",range:"day",customDate:today(),statRange:"week",addType:"expense",selCat:"food",editId:null,editGoal:null,openSwipe:null};
 
 async function cfgGet(k){try{const r=await window.storage.get(k);return r&&r.value;}catch(e){return null;}}
 async function cfgSet(k,v){try{await window.storage.set(k,v);}catch(e){}}
@@ -417,7 +454,6 @@ const fmt=n=>{n=Math.round(n||0);return n.toLocaleString("vi-VN")+"đ";};
 const fmtShort=n=>{n=Math.abs(n);if(n>=1e9)return(n/1e9).toFixed(1).replace(/\.0$/,"")+"tỷ";if(n>=1e6)return(n/1e6).toFixed(1).replace(/\.0$/,"")+"tr";if(n>=1e3)return Math.round(n/1e3)+"k";return n+"";};
 function fmtAmt(el){let v=el.value.replace(/\D/g,"");el.value=v?parseInt(v).toLocaleString("vi-VN")+"đ":"";}
 const parseAmt=s=>parseInt((s||"").replace(/\D/g,""))||0;
-const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
 function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),2200);}
 function autogrow(el){el.style.height="auto";el.style.height=Math.min(el.scrollHeight,100)+"px";}
 const esc=s=>(""+(s==null?"":s)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -425,7 +461,7 @@ function fmtDate(d){const dt=new Date(d+"T00:00");return dt.getDate()+"/"+(dt.ge
 function inRange(d,r){
   const dt=new Date(d+"T00:00"),now=new Date();
   if(r==="all")return true;
-  if(r==="day")return d===today();
+  if(r==="day")return d===(state.customDate||today());
   if(r==="week"){const s=new Date(now);s.setDate(now.getDate()-now.getDay()+(now.getDay()===0?-6:1));s.setHours(0,0,0,0);return dt>=s;}
   if(r==="month")return dt.getMonth()===now.getMonth()&&dt.getFullYear()===now.getFullYear();
   if(r==="year")return dt.getFullYear()===now.getFullYear();
@@ -441,7 +477,10 @@ function renderHome(){
   const bal=DB.tx.reduce((a,b)=>a+(b.type==="income"?b.amount:-b.amount),0);
   document.getElementById("balVal").textContent=fmt(bal);
   document.getElementById("balVal").style.color=bal<0?"var(--red)":"var(--txt)";
-  const rn={day:"hôm nay",week:"tuần này",month:"tháng này",year:"năm nay",all:"tất cả"}[state.range];
+  let rn={day:"hôm nay",week:"tuần này",month:"tháng này",year:"năm nay",all:"tất cả"}[state.range];
+  if(state.range==="day" && state.customDate && state.customDate!==today()){
+     rn = "ngày " + fmtDate(state.customDate);
+  }
   document.getElementById("balSub").textContent="Tổng số dư • lọc "+rn;
   document.getElementById("incVal").textContent=fmt(inc);
   document.getElementById("expVal").textContent=fmt(exp);
@@ -471,32 +510,53 @@ function bindSwipe(){
   document.querySelectorAll("#recentList .tx").forEach(el=>{
     let sx=0,sy=0,dx=0,dragging=false,decided=false,horiz=false;
     const OPEN=-144, TH=70;
-    const start=e=>{const t=e.touches?e.touches[0]:e;sx=t.clientX;sy=t.clientY;dragging=true;decided=false;horiz=false;el.style.transition="none";};
+    
+    const start=e=>{
+      sx=e.clientX;sy=e.clientY;
+      dragging=true;decided=false;horiz=false;
+      el.style.transition="none";
+      if(e.type==="pointerdown" && e.pointerType==="mouse") e.target.setPointerCapture(e.pointerId);
+    };
+    
     const move=e=>{
-      if(!dragging)return;const t=e.touches?e.touches[0]:e;
-      const mx=t.clientX-sx,my=t.clientY-sy;
-      if(!decided){if(Math.abs(mx)>8||Math.abs(my)>8){decided=true;horiz=Math.abs(mx)>Math.abs(my);}}
+      if(!dragging)return;
+      const mx=e.clientX-sx,my=e.clientY-sy;
+      if(!decided){
+        if(Math.abs(mx)>8||Math.abs(my)>8){decided=true;horiz=Math.abs(mx)>Math.abs(my);}
+      }
       if(!horiz)return;
       if(e.cancelable)e.preventDefault();
       const base=el.classList.contains("open")?OPEN:0;
       dx=Math.max(OPEN,Math.min(0,base+mx));
       el.style.transform="translateX("+dx+"px)";
     };
-    const end=()=>{
-      if(!dragging)return;dragging=false;el.style.transition="";
-      if(!horiz){return;}
+    
+    const end=e=>{
+      if(!dragging)return;
+      dragging=false;
+      el.style.transition="";
+      if(e.type==="pointerup" && e.pointerType==="mouse") e.target.releasePointerCapture(e.pointerId);
+      if(!horiz)return;
       const shouldOpen=dx<OPEN/2;
       closeAllSwipe(el);
       el.style.transform="";
       el.classList.toggle("open",shouldOpen);
     };
-    el.addEventListener("touchstart",start,{passive:true});
-    el.addEventListener("touchmove",move,{passive:false});
-    el.addEventListener("touchend",end);
+    
+    el.addEventListener("pointerdown",start,{passive:true});
+    el.addEventListener("pointermove",move,{passive:false});
+    el.addEventListener("pointerup",end);
+    el.addEventListener("pointercancel",end);
+    
     // desktop: click mở/đóng nếu không kéo
     el.addEventListener("click",e=>{
       if(decided&&horiz)return;
-      if(el.classList.contains("open")){el.classList.remove("open");return;}
+      if(el.classList.contains("open")){
+         el.classList.remove("open");
+      } else {
+         closeAllSwipe(el);
+         el.classList.add("open");
+      }
     });
   });
 }
@@ -548,8 +608,8 @@ function renderAI(){
   if(DB.hasKey){
     const m=document.getElementById("msgs");
     if(!chat.length){
-      m.innerHTML='<div class="msg a">Chào bạn 👋 Mình là trợ lý tài chính. Hỏi mình bất cứ điều gì về chi tiêu của bạn nhé!</div>';
-      document.getElementById("chips").innerHTML=['Tháng này tôi tiêu nhiều nhất vào đâu?','Tôi tiết kiệm được bao nhiêu?','Cho lời khuyên cắt giảm chi tiêu','Dự đoán chi tiêu tháng tới'].map(c=>`<span class="chip" onclick="quickAsk('${c}')">${c}</span>`).join("");
+      m.innerHTML='<div class="msg a">Chào bạn 👋 Mình là trợ lý tài chính. Bạn có thể hỏi về thống kê, lời khuyên, hoặc <b>nhập nhanh giao dịch</b> bằng cách gõ tự nhiên (vd: "Đổ xăng 50k", "Nhận lương 10tr").</div>';
+      document.getElementById("chips").innerHTML=['+ Ăn sáng 35k','+ Đổ xăng 70k','Tháng này tôi tiêu nhiều nhất vào đâu?','Tôi tiết kiệm được bao nhiêu?'].map(c=>`<span class="chip" onclick="quickAsk('${c}')">${c}</span>`).join("");
     }else{
       m.innerHTML=chat.map(x=>`<div class="msg ${x.role==='user'?'u':'a'}">${esc(x.text)}</div>`).join("");
       document.getElementById("chips").innerHTML="";m.scrollTop=m.scrollHeight;
@@ -577,6 +637,7 @@ function prepAdd(){
   state.editId=null;state.addType="expense";state.selCat="food";
   document.getElementById("addTitle").textContent="Giao dịch mới";
   document.getElementById("amtIn").value="";document.getElementById("noteIn").value="";
+  document.getElementById("aiQuickIn").value="";
   document.getElementById("dateIn").value=today();
   document.getElementById("delTxBtn").classList.add("hidden");
   document.getElementById("walletIn").innerHTML=DB.wallets.map(w=>`<option>${esc(w)}</option>`).join("");
@@ -586,6 +647,41 @@ function setType(t){state.addType=t;const cats=CATS[t];if(!cats.find(c=>c.id===s
 function renderCatGrid(){document.getElementById("catGrid").innerHTML=CATS[state.addType].map(c=>`<div class="catpick ${c.id===state.selCat?'on':''}" onclick="pickCat('${c.id}')"><span class="ce">${c.e}</span>${c.n}</div>`).join("");}
 function pickCat(id){state.selCat=id;renderCatGrid();}
 document.getElementById("typeSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;document.querySelectorAll("#typeSeg button").forEach(x=>x.classList.toggle("on",x===b));setType(b.dataset.t);});
+
+document.getElementById("aiQuickIn").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();aiFillTx();}});
+
+async function aiFillTx(){
+  const inp=document.getElementById("aiQuickIn"),q=inp.value.trim();if(!q)return;
+  const btn=document.getElementById("aiFillBtn");
+  btn.disabled=true;btn.innerHTML='<div class="spin" style="width:16px;height:16px;border-width:2px;border-top-color:#fff;"></div>';
+  try{
+    const prompt = `Phân tích câu này thành giao dịch: "${q}". Trả về ĐÚNG 1 dòng cấu trúc JSON này: [ADD_TX: {"type":"expense|income", "amount": số, "cat": "ID", "note": "tóm tắt", "date": "${today()}"}]. 
+Danh mục Chi ID: food, shop, transport, bills, home, health, fun, edu, coffee, gift, beauty, other_e. 
+Thu ID: salary, bonus, invest, biz, gift_i, other_i. Không cần nói gì thêm.`;
+    const r=await api("chat",{message:prompt,history:[],context:""});
+    const match = r.reply.match(/\[ADD_TX:\s*(\{[\s\S]*?\})\s*\]/);
+    if(match){
+      const data = JSON.parse(match[1]);
+      if(data.type) {
+         document.querySelectorAll("#typeSeg button").forEach(x=>x.classList.toggle("on",x.dataset.t===data.type));
+         setType(data.type);
+      }
+      if(data.cat) { pickCat(data.cat); }
+      if(data.amount) { 
+         const aIn = document.getElementById("amtIn");
+         aIn.value = data.amount;
+         fmtAmt(aIn);
+      }
+      if(data.note) document.getElementById("noteIn").value = data.note;
+      if(data.date) document.getElementById("dateIn").value = data.date;
+      inp.value="";
+      toast("✨ Đã điền tự động! Bạn hãy bấm Lưu.");
+    } else {
+      toast("AI chưa hiểu rõ, thử nhập lại nhé.");
+    }
+  }catch(e){toast("Lỗi AI: "+e.message);}
+  btn.disabled=false;btn.textContent="➤";
+}
 
 async function saveTx(){
   const amt=parseAmt(document.getElementById("amtIn").value);
@@ -654,6 +750,15 @@ async function saveKey(){
 
 function toggleTheme(){const l=document.body.classList.toggle("light");document.getElementById("themeBtn").textContent=l?"☀️":"🌙";cfgSet("dd_theme",l?"light":"dark");}
 
+function setCustomDate(val){
+  if(val){
+    state.customDate=val;
+    state.range="day";
+    document.querySelectorAll("#rangeSeg button").forEach(x=>x.classList.toggle("on",x.dataset.r==="day"));
+    renderHome();
+  }
+}
+
 document.getElementById("rangeSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;state.range=b.dataset.r;document.querySelectorAll("#rangeSeg button").forEach(x=>x.classList.toggle("on",x===b));renderHome();});
 document.getElementById("statSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;state.statRange=b.dataset.r;document.querySelectorAll("#statSeg button").forEach(x=>x.classList.toggle("on",x===b));renderStats();});
 
@@ -665,12 +770,18 @@ function buildContext(){
   const byCat={};mTx.filter(t=>t.type==="expense").forEach(t=>{const c=catMap[t.cat];byCat[c?c.n:t.cat]=(byCat[c?c.n:t.cat]||0)+t.amount;});
   const bal=DB.tx.reduce((a,b)=>a+(b.type==="income"?b.amount:-b.amount),0);
   const recent=[...DB.tx].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,30).map(t=>`${t.date} ${t.type==="income"?"+":"-"}${t.amount} ${catMap[t.cat]?catMap[t.cat].n:t.cat}${t.note?" ("+t.note+")":""}`).join("\n");
-  return `Dữ liệu tài chính (VNĐ). Hôm nay: ${today()}.
-Tổng số dư: ${bal}đ.
-Tháng này — Thu: ${inc}đ, Chi: ${exp}đ, Còn lại: ${inc-exp}đ.
-Chi theo danh mục tháng này: ${Object.entries(byCat).map(([k,v])=>k+":"+v+"đ").join(", ")||"chưa có"}.
-Ngân sách: ${Object.entries(DB.budgets).map(([k,v])=>(catMap[k]?catMap[k].n:k)+":"+v+"đ").join(", ")||"chưa có"}.
-Mục tiêu: ${DB.goals.map(g=>g.name+" "+g.saved+"/"+g.target).join(", ")||"chưa có"}.
+  return `Bạn là trợ lý tài chính thông minh của Đặng Duyên.
+Dữ liệu tài chính (VNĐ). Hôm nay: ${today()}.
+Danh mục hỗ trợ (NẾU thêm giao dịch BẮT BUỘC dùng ID này): 
+- Chi: food(Ăn uống), shop(Mua sắm), transport(Di chuyển), bills(Hóa đơn), home(Nhà cửa), health(Sức khỏe), fun(Giải trí), edu(Học tập), coffee(Cà phê), gift(Quà tặng), beauty(Làm đẹp), other_e(Khác)
+- Thu: salary(Lương), bonus(Thưởng), invest(Đầu tư), biz(Kinh doanh), gift_i(Được tặng), other_i(Khác)
+
+QUY TẮC TỐI THƯỢNG:
+Nếu tin nhắn là mô tả một giao dịch (ví dụ: "hôm nay ăn trưa 50k", "đổ xăng 70k", "nhận lương 10 triệu"), BẠN PHẢI TRẢ LỜI BẰNG ĐÚNG CẤU TRÚC JSON SAU (nằm trên một dòng, không dùng Markdown \`\`\`):
+[ADD_TX: {"type":"expense", "amount": 50000, "cat": "food", "note": "ăn trưa", "date": "${today()}"}]
+(type="expense"|"income", amount=số nguyên, cat=ID danh mục, note=tóm tắt, date=YYYY-MM-DD). 
+Sau dấu ngoặc ] đó, bạn hẵng gõ văn bản trả lời bình thường ("Mình đã lưu khoản chi 50k...").
+
 30 giao dịch gần nhất:
 ${recent||"chưa có"}`;
 }
@@ -685,7 +796,33 @@ async function sendChat(){
   sending=true;document.getElementById("sendBtn").disabled=true;
   try{
     const r=await api("chat",{message:q,history:chat.slice(0,-1),context:buildContext()});
-    typ.remove();chat.push({role:"model",text:r.reply});renderAI();
+    let replyText = r.reply;
+    let saved = false;
+    
+    // Bắt cấu trúc ADD_TX (hỗ trợ cả JSON có xuống dòng nếu AI lỡ parse sai)
+    const match = replyText.match(/\[ADD_TX:\s*(\{[\s\S]*?\})\s*\]/);
+    if(match){
+       try{
+         const txData = JSON.parse(match[1]);
+         if(txData.amount && txData.type){
+            txData.wallet = DB.wallets[0]; 
+            const sv = await api("addTx",{tx:txData});
+            txData.id = sv.id;
+            DB.tx.push(txData);
+            saved = true;
+         }
+       }catch(e){console.log("Parse AI TX error:",e);}
+       replyText = replyText.replace(match[0], "").trim();
+       if(!replyText) replyText = "Đã tự động thêm giao dịch thành công ✓";
+    }
+    
+    typ.remove();
+    chat.push({role:"model",text:replyText});
+    renderAI();
+    if(saved) {
+       toast("Đã tự động lưu giao dịch qua AI 🤖");
+       render();
+    }
   }catch(e){typ.remove();chat.push({role:"model",text:"⚠️ Lỗi: "+e.message});renderAI();}
   sending=false;document.getElementById("sendBtn").disabled=false;
 }
