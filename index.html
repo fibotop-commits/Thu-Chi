@@ -1606,6 +1606,7 @@
         <button class="btn dng hidden" id="delTxBtn" onclick="delTx()">
           Xóa bản ghi này
         </button>
+        <button class="btn gho" onclick="closeSheet()">Hủy thao tác</button>
       </div>
     </div>
 
@@ -1624,6 +1625,7 @@
           oninput="fmtAmt(this)"
         />
         <button class="btn pri" onclick="saveBudget()">Lưu thiết lập</button>
+        <button class="btn gho" onclick="closeSheet()">Hủy</button>
       </div>
     </div>
 
@@ -1666,6 +1668,7 @@
         <button class="btn dng hidden" id="delGoalBtn" onclick="delGoal()">
           Hủy bỏ mục tiêu
         </button>
+        <button class="btn gho" onclick="closeSheet()">Đóng</button>
       </div>
     </div>
 
@@ -1751,6 +1754,7 @@
         >
           Thay đổi Endpoint (Web App URL)
         </button>
+        <button class="btn gho" onclick="closeSheet()">Đóng cài đặt</button>
 
         <div
           style="
