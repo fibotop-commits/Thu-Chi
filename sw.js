@@ -1,7 +1,9 @@
-const CACHE_NAME = 'thu-chi-v1';
+const CACHE_NAME = 'thu-chi-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
+  './css/style.css',
+  './js/main.js',
   './manifest.json',
   './icon.png'
 ];
